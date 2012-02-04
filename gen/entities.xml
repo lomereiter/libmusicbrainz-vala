@@ -1,0 +1,388 @@
+<generate>
+    <header/>
+    <class name="alias">
+        <root>
+            <property name="text" type="string"/>
+        </root>
+        <attributes>
+            <property name="locale" type="string"/>
+        </attributes>
+    </class>
+    <class name="annotation">
+        <attributes>
+            <property name="type" type="string"/>
+        </attributes>
+        <elements>
+            <property name="entity" type="string"/>
+            <property name="name" type="string"/>
+            <property name="text" type="string"/>
+        </elements>
+    </class>
+    <class name="artist" lookup="true">
+        <attributes>
+            <property name="id" type="string"/>
+            <property name="type" type="string"/>
+        </attributes>
+        <elements>
+            <property name="name" type="string"/>
+            <property name="sort-name" type="string"/>
+            <property name="gender" type="string"/>
+            <property name="country" type="string"/>
+            <property name="disambiguation" type="string"/>
+            <property name="life-span" type="object"/>
+            <property name="alias-list" type="object"/>
+            <property name="recording-list" type="object"/>
+            <property name="release-list" type="object"/>
+            <property name="release-group-list" type="object"/>
+            <property name="label-list" type="object"/>
+            <property name="work-list" type="object"/>
+            <property name="relation-list" type="object"/>
+            <property name="tag-list" type="object"/>
+            <property name="user-tag-list" type="object"/>
+            <property name="rating" type="object"/>
+            <property name="user-rating" type="object"/>
+        </elements>
+    </class>
+    <class name="artist-credit">
+        <root>
+            <property name="name-credit-list" type="object"/>
+        </root>
+        <elements>
+            <skip name="name-credit"/>
+        </elements>
+    </class>
+    <class name="attribute">
+        <root>
+            <property name="text" type="string"/>
+        </root>
+    </class>
+    <class name="cdstub" uppername="CDStub">
+        <attributes>
+            <property name="id" type="string"/>
+        </attributes>
+        <elements>
+            <property name="title" type="string"/>
+            <property name="artist" type="string"/>
+            <property name="barcode" type="string"/>
+            <property name="comment" type="string"/>
+            <property name="track-list" uppername="NonMBTrackList" type="object"/>
+        </elements>
+    </class>
+    <class name="collection">
+        <attributes>
+            <property name="id" type="string"/>
+        </attributes>
+        <elements>
+            <property name="name" type="string"/>
+            <property name="editor" type="string"/>
+            <property name="release-list" type="object"/>
+        </elements>
+    </class>
+    <class name="disc">
+        <attributes>
+            <property name="id" type="string"/>
+        </attributes>
+        <elements>
+            <property name="sectors" type="integer"/>
+            <property name="release-list" type="object"/>
+        </elements>
+    </class>
+    <class name="freedb-disc" uppername="FreeDBDisc">
+        <attributes>
+            <property name="id" type="string"/>
+        </attributes>
+        <elements>
+            <property name="title" type="string"/>
+            <property name="artist" type="string"/>
+            <property name="category" type="string"/>
+            <property name="year" type="string"/>
+            <property name="nonmb-track-list" uppername="NonMBTrackList" type="object"/>
+        </elements>
+    </class>
+    <class name="isrc" uppername="ISRC">
+        <attributes>
+            <property name="id" type="string"/>
+        </attributes>
+        <elements>
+            <property name="recording-list" type="object"/>
+        </elements>
+    </class>
+    <class name="label" lookup="true">
+        <attributes>
+            <property name="id" type="string"/>
+            <property name="type" type="string"/>
+        </attributes>
+        <elements>
+            <property name="name" type="string"/>
+            <property name="sort-name" type="string"/>
+            <property name="label-code" type="integer"/>
+            <property name="disambiguation" type="string"/>
+            <property name="country" type="string"/>
+            <property name="life-span" type="object"/>
+            <property name="alias-list" type="object"/>
+            <property name="release-list" type="object"/>
+            <property name="relation-list" type="object"/>
+            <property name="tag-list" type="object"/>
+            <property name="user-tag-list" type="object"/>
+            <property name="rating" type="object"/>
+            <property name="user-rating" type="object"/>
+        </elements>
+    </class>
+    <class name="label-info">
+        <elements>
+            <property name="catalog-number" type="string"/>
+            <property name="label" type="object"/>
+        </elements>
+    </class>
+    <class name="life-span">
+        <elements>
+            <property name="begin" type="Time"/>
+            <property name="end" type="Time"/>
+        </elements>
+    </class>
+    <class name="medium">
+        <elements>
+            <property name="title" type="string"/>
+            <property name="position" type="integer"/>
+            <property name="format" type="string"/>
+            <property name="disc-list" type="object"/>
+            <property name="track-list" type="object"/>
+        </elements>
+        <verbatim file="medium.inc"/>
+    </class>
+    <class name="message">
+        <elements>
+            <property name="text" type="string"/>
+        </elements>
+    </class>
+    <class name="metadata">
+        <attributes>
+            <property name="xmlns" uppername="XMLNS" type="string"/>
+            <property name="xmlns:ext" uppername="XMLNSExt" type="string"/>
+            <property name="generator" type="string"/>
+            <property name="created" type="string"/>
+        </attributes>
+        <elements>
+            <property name="artist" type="object"/>
+            <property name="release" type="object"/>
+            <property name="release-group" type="object"/>
+            <property name="recording" type="object"/>
+            <property name="label" type="object"/>
+            <property name="work" type="object"/>
+            <property name="puid" uppername="PUID" type="object"/>
+            <property name="isrc" uppername="ISRC" type="object"/>
+            <property name="disc" type="object"/>
+            <!-- WTF? TODO><property name="labelinfolist" uppername="LabelInfoList" type="object"/>       -->
+            <property name="rating" type="object"/>
+            <property name="user-rating" type="object"/>
+            <property name="collection" type="object"/>
+            <property name="artist-list" type="object"/>
+            <property name="release-list" type="object"/>
+            <property name="release-group-list" type="object"/>
+            <property name="recording-list" type="object"/>
+            <property name="label-list" type="object"/>
+            <property name="work-list" type="object"/>
+            <property name="isrc-list" uppername="ISRCList" type="object"/>
+            <property name="annotation-list" type="object"/>
+            <property name="cdstub-list" uppername="CDStubList" type="object"/>
+            <property name="freedb-disc-list" uppername="FreeDBDiscList" type="object"/>
+            <property name="tag-list" type="object"/>
+            <property name="user-tag-list" type="object"/>
+            <property name="collection-list" type="object"/>
+            <property name="cdstub" uppername="CDStub" type="object"/>
+            <property name="message" type="object"/>
+        </elements>
+    </class>
+    <class name="name-credit">
+        <attributes>
+            <property name="joinphrase" type="string"/>
+        </attributes>
+        <elements>
+            <property name="name" type="string"/>
+            <property name="artist" type="object"/>
+        </elements>
+    </class>
+    <class name="nonmbtrack" uppername="NonMBTrack">
+        <elements>
+            <property name="title" type="string"/>
+            <property name="artist" type="string"/>
+            <property name="length" type="integer"/>
+        </elements>
+    </class>
+    <class name="puid" uppername="PUID">
+        <attributes>
+            <property name="id" type="string"/>
+        </attributes>
+        <elements>
+            <property name="recording-list" type="object"/>
+        </elements>
+    </class>
+    <class name="rating">
+        <root>
+            <property name="rating" type="double"/>
+        </root>
+        <attributes>
+            <property name="votes-count" type="integer"/>
+        </attributes>
+    </class>
+    <class name="recording" lookup="true">
+        <attributes>
+            <property name="id" type="string"/>
+        </attributes>
+        <elements>
+            <property name="title" type="string"/>
+            <property name="length" type="integer"/>
+            <property name="disambiguation" type="string"/>
+            <property name="artist-credit" type="object"/>
+            <property name="release-list" type="object"/>
+            <property name="puid-list" uppername="PUIDList" type="object"/>
+            <property name="isrc-list" uppername="ISRCList" type="object"/>
+            <property name="relation-list" type="object"/>
+            <property name="tag-list" type="object"/>
+            <property name="user-tag-list" type="object"/>
+            <property name="rating" type="object"/>
+            <property name="user-rating" type="object"/>
+        </elements>
+    </class>
+    <class name="relation">
+        <attributes>
+            <property name="type" type="string"/>
+        </attributes>
+        <elements>
+            <property name="target" type="string"/>
+            <property name="direction" type="string"/>
+            <property name="attribute-list" type="object"/>
+            <property name="begin" type="string"/>
+            <property name="end" type="string"/>
+            <property name="artist" type="object"/>
+            <property name="release" type="object"/>
+            <property name="release-group" type="object"/>
+            <property name="recording" type="object"/>
+            <property name="label" type="object"/>
+            <property name="work" type="object"/>
+        </elements>
+    </class>
+    <class name="release" lookup="true">
+        <attributes>
+            <property name="id" type="string"/>
+        </attributes>
+        <elements>
+            <property name="title" type="string"/>
+            <property name="status" type="string"/>
+            <property name="quality" type="string"/>
+            <property name="disambiguation" type="string"/>
+            <property name="packaging" type="string"/>
+            <property name="text-representation" type="object"/>
+            <property name="artist-credit" type="object"/>
+            <property name="release-group" type="object"/>
+            <property name="date" type="Time"/>
+            <property name="country" type="string"/>
+            <property name="barcode" type="string"/>
+            <property name="asin" uppername="ASIN" type="string"/>
+            <property name="label-info-list" type="object"/>
+            <property name="medium-list" type="object"/>
+            <property name="relation-list" type="object"/>
+        </elements>
+        <verbatim file="release.inc"/>
+    </class>
+    <class name="release-group" lookup="true">
+        <attributes>
+            <property name="id" type="string"/>
+            <property name="type" type="string"/>
+        </attributes>
+        <elements>
+            <property name="title" type="string"/>
+            <property name="disambiguation" type="string"/>
+            <property name="first-release-date" type="Time"/>
+            <property name="artist-credit" type="object"/>
+            <property name="release-list" type="object"/>
+            <property name="relation-list" type="object"/>
+            <property name="tag-list" type="object"/>
+            <property name="user-tag-list" type="object"/>
+            <property name="rating" type="object"/>
+            <property name="user-rating" type="object"/>
+        </elements>
+    </class>
+    <class name="tag">
+        <attributes>
+            <property name="count" type="integer"/>
+        </attributes>
+        <elements>
+            <property name="name" type="string"/>
+        </elements>
+    </class>
+    <class name="text-representation">
+        <elements>
+            <property name="language" type="string"/>
+            <property name="script" type="string"/>
+        </elements>
+    </class>
+    <class name="track">
+        <elements>
+            <property name="position" type="integer"/>
+            <property name="title" type="string"/>
+            <property name="recording" type="object"/>
+            <property name="length" type="integer"/>
+            <property name="artist-credit" type="object"/>
+        </elements>
+    </class>
+    <class name="user-rating">
+        <root>
+            <property name="user-rating" type="integer"/>
+        </root>
+    </class>
+    <class name="user-tag">
+        <elements>
+            <property name="name" type="string"/>
+        </elements>
+    </class>
+    <class name="work" lookup="true">
+        <attributes>
+            <property name="id" type="string"/>
+            <property name="type" type="string"/>
+        </attributes>
+        <elements>
+            <property name="title" type="string"/>
+            <property name="artist-credit" type="object"/>
+            <property name="iswc" type="string"/>
+            <property name="disambiguation" type="string"/>
+            <property name="alias-list" type="object"/>
+            <property name="relation-list" type="object"/>
+            <property name="tag-list" type="object"/>
+            <property name="user-tag-list" type="object"/>
+            <property name="rating" type="object"/>
+            <property name="user-rating" type="object"/>
+        </elements>
+    </class>
+    <list name="alias"/>
+    <list name="annotation"/>
+    <list name="artist"/>
+    <list name="attribute"/>
+    <list name="cdstub" uppername="CDStub"/>
+    <list name="collection"/>
+    <list name="disc"/>
+    <list name="freedb-disc" uppername="FreeDBDisc"/>
+    <list name="isrc" uppername="ISRC"/>
+    <list name="label"/>
+    <list name="label-info"/>
+    <list name="medium">
+        <elements>
+            <property name="track-count" type="integer"/>
+        </elements>
+    </list>
+    <list name="name-credit"/>
+    <list name="nonmb-track" uppername="NonMBTrack"/>
+    <list name="puid" uppername="PUID"/>
+    <list name="recording"/>
+    <list name="relation">
+        <attributes>
+            <property name="target-type" type="string"/>
+        </attributes>
+    </list>
+    <list name="release"/>
+    <list name="release-group"/>
+    <list name="tag"/>
+    <list name="track"/>
+    <list name="user-tag"/>
+    <list name="work"/>
+</generate>

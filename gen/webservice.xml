@@ -1,0 +1,198 @@
+<generate>
+    <rewrite_rules>
+        <suffix match="_production" replace=" production"/>
+        <suffix match="_relations" replace="-rels"/>
+        <suffix match="_id" replace="id"/>
+        <prefix match="to_" replace="" append="-rels"/>
+        <release_group replace="release-groups"/>
+        <disc_ids replace="discids"/>
+    </rewrite_rules>
+
+	<header/>
+
+    <enums>
+        <artist_type>
+            <person/>
+            <group/>
+            <unknown/>
+        </artist_type>
+        <label_type>
+            <original_production/>
+            <bootleg_production/>
+            <reissue_production/>
+            <distributor/>
+            <holding/>
+            <unknown/>
+        </label_type>
+        <gender>
+            <male/>
+            <female/>
+            <other/>
+            <unknown/>
+        </gender>
+        <relation_type>
+            <to_artist/>
+            <to_label/>
+            <to_recording/>
+            <to_release/>
+            <to_release_group/>
+            <to_url/>
+            <to_work/>
+        </relation_type>
+        <release_type>
+            <nat/>
+            <album/>
+            <single/>
+            <ep/>
+            <compilation/>
+            <soundtrack/>
+            <spokenword/>
+            <interview/>
+            <audiobook/>
+            <live/>
+            <remix/>
+            <other/>
+        </release_type>
+        <release_status>
+            <official/>
+            <promotion/>
+            <bootleg/>
+            <pseudo_release/>
+        </release_status>
+    </enums>
+
+    <includes>
+        <!-- default type is bool -->
+        <artist>
+            <recordings/>
+            <releases/>
+            <release_groups/>
+            <works/>
+            <various_artists/>
+            <disc_ids/>
+            <media/>
+            <aliases/>
+            <tags/>
+            <user_tags/>
+            <ratings/>
+            <user_ratings/>
+            <relations type="relation_type[]"/>
+        </artist>
+        <label>
+            <releases/>
+            <disc_ids/>
+            <media/>
+            <aliases/>
+            <tags/>
+            <user_tags/>
+            <ratings/>
+            <user_ratings/>
+        </label>
+        <recording>
+            <artists/>
+            <releases/>
+            <disc_ids/>
+            <media/>
+            <artist_credits/>
+            <tags/>
+            <user_tags/>
+            <ratings/>
+            <user_ratings/>
+            <relations type="relation_type[]"/>
+        </recording>
+        <release>
+            <artists/>
+            <labels/>
+            <recordings/>
+            <release_groups/>
+            <media/>
+            <artist_credits/>
+            <disc_ids/>
+            <puids/>
+            <echoprints/>
+            <isrcs/>
+            <relations type="relation_type[]"/>
+        </release>
+        <release_group>
+            <artists/>
+            <releases/>
+            <disc_ids/>
+            <media/>
+            <artist_credits/>
+            <tags/>
+            <user_tags/>
+            <ratings/>
+            <user_ratings/>
+            <relations type="relation_type[]"/>
+        </release_group>
+        <work>
+            <artists/>
+            <aliases/>
+            <tags/>
+            <user_tags/>
+            <ratings/>
+            <user_ratings/>
+            <relations type="relation_type[]"/>
+        </work>
+        <disc_id>
+            <artists/>
+            <labels/>
+            <recordings/>
+            <release_groups/>
+            <puids/>
+            <echoprints/>
+            <isrcs/>
+        </disc_id>
+        <echoprint>
+            <artists/>
+            <releases/>
+        </echoprint>
+        <puid>
+            <artists/>
+            <releases/>
+            <puids/>
+            <echoprints/>
+            <isrcs/>
+        </puid>
+        <isrc>
+            <artists/>
+            <releases/>
+            <puids/>
+            <echoprints/>
+            <isrcs/>
+        </isrc>
+        <iswc>
+            <artists/>
+        </iswc>
+    </includes>
+
+	<filters>
+        <!-- default type is "string" -->
+        <artist>
+            <id param="arid"/>
+            <name param="artist"/>
+            <type type="ArtistType"/>
+            <sort_name param="sortname"/>
+            <begin type="Time"/>
+            <end type="Time"/>
+            <comment/>
+            <alias/>
+            <country/>
+            <gender type="Gender"/>
+            <tag/>
+        </artist>
+        <label>
+            <id param="laid"/>
+            <name param="label"/>
+            <sort_name param="sortname"/>
+            <founding param="begin" type="Time"/>
+            <dissolution param="end" type="Time"/>
+            <type type="LabelType"/>
+            <country/>
+            <comment/>
+            <alias/>
+            <tag/>
+            <code/>
+        </label>
+    </filters>
+</generate>

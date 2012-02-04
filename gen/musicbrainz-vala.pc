@@ -1,0 +1,11 @@
+prefix=/usr
+exec_prefix=/usr
+libdir=/usr/lib
+includedir=/usr/include
+
+Name: musicbrainz-vala
+Description: The Musicbrainz client library for Vala programming language.
+Version: 0.0.1
+Requires:
+Libs: -L/usr/lib -lmusicbrainz-vala
+Cflags: -I/usr/include
