@@ -1,4 +1,4 @@
-// valac test_async.vala --pkg musicbrainz-vala --pkg posix
+// valac test_async.vala --pkg musicbrainz-vala
 using Musicbrainz;
 
 void main () {

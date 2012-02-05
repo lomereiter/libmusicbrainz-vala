@@ -33,7 +33,7 @@ namespace Musicbrainz {
             last_executed_task = task;
 
             executed_mutex.lock ();
-            executed_cond.signal ();
+            executed_cond.broadcast ();
             executed_mutex.unlock ();
 
             execute_times.offer_tail (new DateTime.now_local ());
