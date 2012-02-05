@@ -1,57 +1,42 @@
 namespace Musicbrainz {
 
+    public delegate void MetadataCallback (Metadata md);
+
+    static const bool DEBUG = false;
+
     public class WebService {
-
-        static const string USER_AGENT = "musicbrainz-vala/0.0.1 (http://github.com/lomereiter)";
-        static const ulong TIME_INTERVAL = 1000 * 1000 * 2; // 2 seconds
-
-        public int? port = null; // TODO: validation
-        public string? server = null;
-
-        DateTime? last_request_time = null;
-
-        private WebService () {
-            if (server == null) server = "http://musicbrainz.org";
-            if (port == null) port = 80;
-        }
+        
+        TaskExecuter task_executer = new TaskExecuter ();
 
         static WebService _instance = null;
+        internal static Soup.SessionSync session = new Soup.SessionSync ();
 
-        public static unowned WebService instance () {
+        string server;
+        int port;
+
+        public static void init (string user_agent, 
+                                 string server="http://musicbrainz.org",
+                                 int port=80) 
+        {
             lock (_instance) {
                 if (_instance == null) {
                     _instance = new WebService ();
+                    _instance.session.user_agent = user_agent;
+                    _instance.server = server;
+                    _instance.port = port;
                 } 
             }
+        }
+
+        public static unowned WebService instance () {
             return _instance;
         }
 
-        Metadata query (string suffix) {
-            var url = @"$server:$port/ws/2/$suffix";
-
-            var session = new Soup.SessionSync ();
-            session.user_agent = USER_AGENT;
-
-            var message = new Soup.Message ("GET", url);
-
-            lock (last_request_time) {
-                var now = new DateTime.now_local ();
-                if (last_request_time == null) {
-                    last_request_time = now;
-                } else {
-                    ulong delta = (ulong)now.difference (last_request_time);
-
-                    if (delta < TIME_INTERVAL)
-                        Thread.usleep (TIME_INTERVAL - delta);
-
-                    last_request_time = new DateTime.now_local ();
-                }
-            }
-            session.send_message (message);
-            // TODO: exceptions
-
+        internal static Metadata get_metadata_from_message (Soup.Message message) {
             string xml = (string)(message.response_body.flatten ().data);
-            
+
+            if (DEBUG) { stdout.printf ("%s\n", xml); }
+
             Xml.Parser.init ();
             Xml.Doc * doc = Xml.Parser.parse_doc (xml);
             Metadata result = new Metadata.from_node (doc -> get_root_element ());
@@ -61,11 +46,62 @@ namespace Musicbrainz {
             return result;
         }
 
-        public Metadata lookup_query (string entity, string id, Includes? includes) {
+        void query_async (string suffix, owned MetadataCallback cb) {
+            var url = @"$server:$port/ws/2/$suffix";
+            if (DEBUG) { stdout.printf ("%s\n", url); }
+            task_executer.add_task ( new QueryAsyncTask (url, (owned) cb) );
+        }
+
+        Metadata query (string suffix) {
+            var url = @"$server:$port/ws/2/$suffix";
+            if (DEBUG) { stdout.printf ("%s\n", url); }
+            var message = new Soup.Message ("GET", url);
+            task_executer.add_task_and_wait ( new QuerySyncTask (message));
+            return get_metadata_from_message (message);
+        }
+
+
+        static string gen_lookup_query (string entity, string id, Includes? includes) {
             var inc = "";
             if (includes != null)
                 inc = includes.to_string ();
-            return query (@"$entity/$id?$inc");
+            return @"$entity/$id?$inc";
+        }
+
+        public static Metadata lookup_query (string entity, string id, Includes? includes) {
+            return instance ().query (gen_lookup_query (entity, id, includes));
+        }
+
+        public static void lookup_query_async (string entity, string id, Includes? includes,
+                                               owned MetadataCallback callback)
+        {
+            instance ().query_async (gen_lookup_query (entity, id, includes), 
+                                     (owned) callback);
+        }
+
+        static string gen_search_query (string entity, Filter filter, 
+                                        int? limit, int? offset) 
+        {
+            var str = @"$entity?query=$(filter.to_lucene ())";
+            if (limit != null)
+                str += @"&limit=$limit";
+            if (offset != null)
+                str += @"&offset=$offset";
+            return str;
+        }
+
+        public static Metadata search_query (string entity, Filter filter,
+                                             int? limit, int? offset)
+        {
+            return instance ().query (gen_search_query (entity, filter, limit, offset));
+        }
+
+        public static void search_query_async (string entity, Filter filter,
+                                               int? limit, int? offset,
+                                               owned MetadataCallback callback)
+        {
+            instance ().query_async (gen_search_query (entity, filter, limit, offset),
+                                     (owned) callback);
         }
     }
 

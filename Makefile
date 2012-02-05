@@ -14,15 +14,15 @@ sources:
 
 NAME=musicbrainz-vala
 LIBNAME=lib$(NAME)
-SOURCE_FILES=Entity.vala Filter.vala Includes.vala WebServiceSingleton.vala
+SOURCE_FILES=Entity.vala Filter.vala Includes.vala WebServiceSingleton.vala TaskExecuter.vala QueryTasks.vala
 GEN_FILES=Entities.vala WebService.vala
 SOURCES=$(GEN_FILES) $(SOURCE_FILES)
-PACKAGES=--pkg gee-1.0 --pkg libxml-2.0 --pkg libsoup-2.4
-VALAC=valac-0.14
+PACKAGES=--pkg gee-1.0 --pkg libxml-2.0 --pkg libsoup-2.4 --pkg posix
+VALAC=valac-0.16
 
 library:
 	cd gen && cp $(SOURCE_FILES) ../src
-	cd src && $(VALAC) --library $(LIBNAME).so -o $(LIBNAME).so -X -fPIC -X --shared $(SOURCES) --vapi $(NAME).vapi -H $(NAME).h $(PACKAGES)
+	cd src && $(VALAC) --library $(LIBNAME).so -o $(LIBNAME).so -X -fPIC -X --shared $(SOURCES) --vapi $(NAME).vapi -H $(NAME).h $(PACKAGES) --thread
 	rm -rf lib/
 	mkdir lib
 	cp gen/$(NAME).deps lib/

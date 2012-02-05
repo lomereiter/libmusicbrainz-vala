@@ -15,6 +15,8 @@ class WsGenerator : XMLVisitor {
         switch (name) {
             case "generate":
                 visit_root_node (node); break;
+            case "implies":
+                visit_implies (node); break;
             case "enums":
                 visit_enums (node); break;
             case "rewrite_rules":
@@ -104,6 +106,61 @@ class WsGenerator : XMLVisitor {
         });
     }
 
+    Gee.HashMap <string, Xml.Node*> _implies = new Gee.HashMap <string, Xml.Node*> ();
+    void visit_implies (Xml.Node * implies) {
+        foreach_child (implies, (entity) => {
+            _implies[entity -> name] = entity;
+        });
+    }
+
+    void postprocess (Xml.Node * includes) {
+
+        bool need_to_add_suffix = false;
+        Gee.Set <string> props = new Gee.HashSet <string> (); 
+        foreach_child (includes, (field) => { props.add (field -> name); });
+        Xml.Node*[] fields_to_add = {};
+        foreach_child (includes, (field) => {
+            if (_implies.has_key (field -> name)) {
+                if (!need_to_add_suffix) {
+                    _ ( "var suffix = \"\";");
+                }
+                need_to_add_suffix = true;
+
+                var name = field -> name;
+                foreach_child (_implies[name], (implication) => {
+                    var impl_name = implication -> name;
+                    if (!props.contains (impl_name)) {
+                        props.add (impl_name);
+                        fields_to_add += implication;
+                        var mb_name = MBify (impl_name);
+                        _ (@"if ($impl_name.length != 0) {"); inc ();
+                        _ ( "string[] mbified = {};");
+                        _ (@"foreach (var item in $impl_name)");
+                        _ ( "    mbified += item.to_mb ();");
+                        _ (@"suffix += \"&$mb_name=\" + string.joinv (\"|\", mbified);");
+                        dec (); _ ( "}");
+                    }
+                });
+            }
+        });
+        _ (@"var result = \"inc=\" + string.joinv (\"+\", includes);");
+        if (need_to_add_suffix) {
+            _ ( "result += suffix;");
+        }
+        _ ( "return result;");
+        dec ();
+        _ ( "}"); // end of method
+        foreach (var field in fields_to_add) {
+            add_includes_field (field -> name, field -> get_prop ("type"));
+        }
+    }
+
+    void add_includes_field (string name, string? type) {
+        var _type = type == null ? "bool" : camel (type);
+        var default_value = _type.has_suffix ("[]") ? "{}" : "false";
+        _ (@"public $_type $name = $default_value;");
+    }
+
     void visit_includes (Xml.Node * node) {
         foreach_child (node, (includes) => {
             var class_name = camel (includes -> name + "-includes");
@@ -112,13 +169,7 @@ class WsGenerator : XMLVisitor {
             foreach_child (includes, (field) => {
                 var name = field -> name;
                 var type = field -> get_prop ("type");
-                if (type == null) {
-                    type = "bool";
-                } else {
-                    type = camel (type);
-                }
-                var default_value = type.has_suffix ("[]") ? "{}" : "false";
-                _ (@"public $type $name = $default_value;");
+                add_includes_field (name, type);
             });
             _ ( "public string to_string () {");
             inc ();
@@ -136,9 +187,7 @@ class WsGenerator : XMLVisitor {
                             break;
                     }
                 });
-                _ (@"return \"inc=\" + string.joinv (\"+\", includes);");
-            dec ();
-            _ ( "}"); // end of method
+                postprocess (includes); // end of method is there
             dec (); 
             _ ("}"); // end of class
         });
@@ -146,8 +195,9 @@ class WsGenerator : XMLVisitor {
 
     void visit_filters (Xml.Node * node) {
         foreach_child (node, (filter) => {
-            var class_name = camel (filter -> name + "-filter");
-            _ (@"public class $class_name : Filter {");
+            var class_name = camel (filter -> name);
+            var entity_name = MBify (filter -> name);
+            _ (@"public class $(class_name)Filter : Filter {");
             inc (); 
                 foreach_child (filter, (field) => {
                     var type = field -> get_prop ("type");
@@ -155,10 +205,7 @@ class WsGenerator : XMLVisitor {
                     var name = field -> name;
                     _ (@"public $type? $name = null;");
                 });
-                _ ( "public string entity_name () {");
-                _ (@"    return \"$(MBify (filter -> name))\";");
-                _ ( "}");
-                _ (@"public string to_lucene () {"); //TODO:make me internal
+                _ (@"internal string to_lucene () {");
                 inc (); 
                     _ ("string[] parameters = {};");
                     foreach_child (filter, (field) => {
@@ -175,8 +222,10 @@ class WsGenerator : XMLVisitor {
                         string expression = null; 
                         switch (type) {
                             case "string":
-                            case "int":
                                 expression = @"$name";
+                                break;
+                            case "int":
+                                expression = @"$name.to_string ()";
                                 break;
                             case "Time":
                                 expression = @"$name.format (\"%F\")"; 
@@ -191,6 +240,22 @@ class WsGenerator : XMLVisitor {
                     _ (@"return string.joinv (\" AND \", parameters);");
                 dec ();
                 _ ( "}"); // end of method;
+
+                var list_name = plural (filter -> name);
+    
+                _ (@"public delegate void SearchCallback ($(class_name)List $list_name);");
+                _ (@"public $(class_name)List search (int? limit=null, int? offset=null) {");
+                _ (@"    return WebService.search_query (\"$entity_name\",");
+                _ (@"                this, limit, offset).$list_name;");
+                _ ( "}");
+
+                _ ( "public void search_async (owned SearchCallback callback, ");
+                _ ( "                          int? limit=null, int? offset=null)");
+                _ ( "{");
+                _ (@"    WebService.search_query_async (\"$entity_name\", ");
+                _ ( "                        this, limit, offset, ");
+                _ (@"                        (md) => { callback (md.$list_name); });");
+                _ ( "}");                                   
             dec (); 
             _ ("}"); // end of class
         });

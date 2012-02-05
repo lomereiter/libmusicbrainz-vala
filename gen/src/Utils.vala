@@ -12,3 +12,11 @@ string camel (string str) {
     }
     return sb.str;
 }
+
+string plural (string str) {
+    if (str.has_suffix ("s")) {
+        return str + "es";
+    } else {
+        return str + "s";
+    }
+}

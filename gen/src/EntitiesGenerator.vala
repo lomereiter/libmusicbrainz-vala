@@ -40,7 +40,7 @@ string lowercase (Xml.Node * node) {
     }
     name = lowercase_str (name);
     if (name.has_suffix ("_list")) {
-        name = name.substring (0, name.length - 5) + "s";
+        name = plural (name.substring (0, name.length - 5));
     }
     return name;
 }
@@ -111,10 +111,15 @@ public class EntitiesGenerator : XMLVisitor {
         var c = current_classname;
         var mb_name = node -> get_prop ("name");
         var name = lowercase_str (mb_name);
+        _ (@"public delegate void LookupCallback ($c $name);");
         _ (@"public static $c by_id (string id, $(c)Includes? includes=null) {");
-        inc (); _ ( "var ws = WebService.instance ();");
-                _ (@"return ws.lookup_query (\"$mb_name\", id, includes).$name;"); 
-        dec ();
+        _ (@"    return WebService.lookup_query (\"$mb_name\", id, includes).$name;"); 
+        _ ( "}");
+        _ (@"public static void by_id_async (string id, $(c)Includes? includes=null,");
+        _ ( "                                owned LookupCallback callback) ");
+        _ ( "{");
+        _ (@"    WebService.lookup_query_async (\"$mb_name\", id, includes, ");
+        _ (@"                                   (md) => { callback (md.$name); });");
         _ ( "}");
     }
 

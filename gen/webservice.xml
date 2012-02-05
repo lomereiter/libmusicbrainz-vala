@@ -6,6 +6,8 @@
         <prefix match="to_" replace="" append="-rels"/>
         <release_group replace="release-groups"/>
         <disc_ids replace="discids"/>
+        <release_types replace="type"/>
+        <release_statuses replace="status"/>
     </rewrite_rules>
 
 	<header/>
@@ -60,6 +62,16 @@
             <pseudo_release/>
         </release_status>
     </enums>
+
+    <implies>
+        <release_groups>
+            <release_types type="release_type[]"/>
+        </release_groups>
+        <releases>
+            <release_types type="release_type[]"/>
+            <release_statuses type="release_status[]"/>
+        </releases>
+    </implies>
 
     <includes>
         <!-- default type is bool -->
@@ -194,5 +206,65 @@
             <tag/>
             <code/>
         </label>
+        <release_group>
+            <id param="rgid"/>
+            <name param="releasegroup"/>
+            <release/>
+            <releases type="int"/>
+            <tag/>
+            <type type="ReleaseType"/>
+            <release_id param="reid"/>
+            <comment/>
+            <artist param="artistname"/>
+            <credit param="creditname"/>
+        </release_group>
+        <release>
+            <id param="reid"/>
+            <name param="release"/>
+            <asin/>
+            <barcode/>
+            <catalog_number param="catno"/>
+            <country/>
+            <comment/>
+            <date type="Time"/>
+            <format/>
+            <label/>
+            <language param="lang"/>
+            <mediums type="int"/>
+            <release_group_id param="rgid"/>
+            <script/>
+            <status type="ReleaseStatus"/>
+            <type type="ReleaseType"/>
+            <tracks type="int"/>
+            <artist param="artistname"/>
+            <credit param="creditname"/>
+        </release>
+        <recording>
+            <id param="rid"/>
+            <artist_id param="arid"/>
+            <release_id param="reid"/>
+            <artist param="artistname"/>
+            <credit param="creditname"/>
+            <status type="ReleaseStatus"/>
+            <type type="ReleaseType"/>
+            <duration_ms type="int"/>
+            <isrc/>
+            <tag/>
+            <release_date param="date" type="Time"/>
+            <comment/>
+            <country/>
+            <format/>
+        </recording>
+        <work>
+            <alias/>
+            <id param="wid"/>
+            <type/>
+            <iswc/>
+            <tag/>
+            <name param="work"/>
+            <artist param="artistname"/>
+            <artist_id param="arid"/>
+            <comment/>
+        </work>
     </filters>
 </generate>

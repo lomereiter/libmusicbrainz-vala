@@ -41,6 +41,7 @@
             <property name="user-tag-list" type="object"/>
             <property name="rating" type="object"/>
             <property name="user-rating" type="object"/>
+            <property name="ipi" type="string"/>
         </elements>
     </class>
     <class name="artist-credit">
@@ -126,6 +127,7 @@
             <property name="user-tag-list" type="object"/>
             <property name="rating" type="object"/>
             <property name="user-rating" type="object"/>
+            <property name="ipi" type="string"/>
         </elements>
     </class>
     <class name="label-info">
@@ -172,7 +174,7 @@
             <property name="puid" uppername="PUID" type="object"/>
             <property name="isrc" uppername="ISRC" type="object"/>
             <property name="disc" type="object"/>
-            <!-- WTF? TODO><property name="labelinfolist" uppername="LabelInfoList" type="object"/>       -->
+            <property name="label-info-list" type="object"/>
             <property name="rating" type="object"/>
             <property name="user-rating" type="object"/>
             <property name="collection" type="object"/>
