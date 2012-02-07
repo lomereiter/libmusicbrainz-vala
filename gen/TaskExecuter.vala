@@ -1,97 +1,178 @@
 namespace Musicbrainz {
 
     public interface Task : Object {
-        public abstract void execute ();
+        public abstract async void execute ();
     }
 
     internal class TaskExecuter {
         
-        // TODO: provide those values to the constructor 
-        //       allow to change them runtime
-        static const ulong CONSEC_TIME_INTERVAL = 1000 * 1000 * 1; // 1 second
-        static const ulong TIME_INTERVAL = 10 * CONSEC_TIME_INTERVAL;
-        static const ulong TASKS_ALLOWED = 10;
+        public enum ExecutingMode {
+            NORMAL,
+            BURST
+        }
 
-        Gee.Deque <Task> tasks = new Gee.LinkedList <Task> ();
+        class InternalTask : Object, Task {
+            SourceFunc notify_caller;
+            public ExecutingMode mode;
+            Task task;
+            public InternalTask (Task task, owned SourceFunc callback, ExecutingMode mode) {
+                notify_caller = (owned) callback;
+                this.task = task;
+                this.mode = mode;
+            }
+            public async void execute () {
+                yield task.execute ();
+                Idle.add ((owned) notify_caller);
+            }
+        }
+
+        uint tasks_allowed;
+        uint time_interval;
+        public uint consecutive_time_interval;
+
+        ExecutingMode mode = ExecutingMode.NORMAL;
+    
+        uint? tasks_to_burst = null;
+
+        // tasks to be run
+        Gee.Queue <InternalTask> tasks = new Gee.LinkedList <InternalTask> ();
+
+        // times of last task runs
         Gee.Deque <DateTime> execute_times = new Gee.LinkedList <DateTime> ();
 
-        ThreadFunc<void *> loop;
-        unowned Thread<void *> thread;
+        bool execute_times_deque_is_full {
+            get { return execute_times.size == tasks_allowed - 1; }
+        }
 
-        Cond tasks_cond = new Cond ();
-        Mutex tasks_mutex = new Mutex ();
-      
-        Cond executed_cond = new Cond ();
-        Mutex executed_mutex = new Mutex ();
+        ulong tasks_executed = 0;
 
-        Task? last_executed_task = null;
-
-        void execute_task () {
-            var task = tasks.poll_head ();
-            
-            task.execute (); 
-            last_executed_task = task;
-
-            executed_mutex.lock ();
-            executed_cond.broadcast ();
-            executed_mutex.unlock ();
-
+        async void execute_next_task () {
+            var task = tasks.poll ();
+ 
+            if (execute_times_deque_is_full) 
+                execute_times.poll_head ();
+           
             execute_times.offer_tail (new DateTime.now_local ());
+            ++tasks_executed;
+            yield task.execute (); 
 
         }
 
-        internal TaskExecuter () {
-             loop = () => {
-                while (true) {
-                    if (tasks.is_empty) {
-                        tasks_mutex.lock ();
-                        while (tasks.is_empty)
-                            tasks_cond.wait (tasks_mutex);
-                        tasks_mutex.unlock ();
+
+        public TaskExecuter (uint time_interval, uint tasks_allowed) {
+            assert (tasks_allowed > 0);
+            this.time_interval = time_interval;
+            this.tasks_allowed = tasks_allowed;
+            this.consecutive_time_interval = time_interval / tasks_allowed;
+
+            loop ();
+        }
+
+        SourceFunc? add_task_callback = null;
+        
+        bool alive = true;
+
+        async void loop () {
+            // loop lifecycle:
+            //      0) take next task from tasks
+            //      1) wait until it's allowed to execute it
+            //      2) execute the task
+            //      3) notify waiting threads that the task was executed
+            //      4) update execute_times deque
+            //      goto step 0
+
+            // the following invariants hold:
+            //  1) in both BURST and NORMAL modes,
+            //     the number of tasks executed per any time_interval
+            //     does not exceed tasks_allowed
+            //  2) in NORMAL mode, the time interval between
+            //     consecutive task executions is 
+            //     >= time_interval / tasks_allowed. 
+
+
+            while (alive) {
+
+                if (tasks.is_empty) {
+                    set_add_task_callback (loop.callback);
+                    yield; 
+                }
+                
+                if (!alive) break;
+
+                // now the tasks queue is non empty
+
+                if (execute_times.is_empty) {
+                    yield execute_next_task ();
+                } else {
+                    
+                    uint timeout = 0;
+
+                    var now = new DateTime.now_local ();
+                   
+                    var next_task = tasks.peek ();
+
+                    if (next_task.mode == ExecutingMode.NORMAL && !execute_times.is_empty) {
+                        var last_request_time = execute_times.peek_tail ();
+                        uint delta = (uint)now.difference (last_request_time);
+                    
+                        if (delta < consecutive_time_interval) {
+                            var tmp = consecutive_time_interval - delta;
+                            if (tmp > timeout) timeout = tmp;
+                        }
                     }
 
-                    if (execute_times.is_empty) {
-                        execute_task ();
-                    } else {
-
-                        var now = new DateTime.now_local ();
-                        var last_request_time = execute_times.peek_tail ();
-                        ulong delta = (ulong)now.difference (last_request_time);
-
-                        if (delta < CONSEC_TIME_INTERVAL) {
-                            Thread.usleep (CONSEC_TIME_INTERVAL - delta);
+                    if (tasks_executed >= tasks_allowed) {
+                        var first_request_time = execute_times.peek_head ();
+                        uint delta = (uint)now.difference (first_request_time);
+                    
+                        if (delta < time_interval) {
+                            var tmp = time_interval - delta;
+                            if (tmp > timeout) timeout = tmp;
                         }
+                    }
 
-                        execute_task ();
-                        execute_times.poll_head ();
-                        // TODO: some burst strategy based on 
-                        //       saving last 10 execution times instead of 1
+                    if (timeout > 0) {
+                        timeout /= 1000; // microseconds ->  milliseconds
+                        Timeout.add (timeout, loop.callback);
+                        yield;
+                    }
+
+                    yield execute_next_task ();
+                }
+            }
+        }
+
+        void set_add_task_callback (owned SourceFunc callback) {
+            add_task_callback = (owned) callback;
+        }
+
+        public void add_task (Task task, owned SourceFunc callback) {
+            lock (tasks) {
+                tasks.offer (new InternalTask (task, (owned) callback, mode));
+                if (tasks.size == 1 && add_task_callback != null) {
+                    // add_task_callback != null only while the queue is empty
+                    Idle.add ((owned) add_task_callback);
+                }
+
+                if (tasks_to_burst != null) {
+                    if (--tasks_to_burst == 0) {
+                        mode = ExecutingMode.NORMAL;
+                        tasks_to_burst = null;
                     }
                 }
-             };
-             try {
-                 thread = Thread.create<void *> (loop, false);
-             } catch (ThreadError e) {
-                 stderr.printf ("Error during initialization: %s\n", e.message);
-                 Posix.exit (1);
-             }
+            }
         }
 
-        public void add_task (Task task) {
-            tasks_mutex.lock();
-            tasks.offer_tail (task);
-            tasks_cond.signal ();
-            tasks_mutex.unlock();
+        public async void execute_task (Task task) {
+            add_task (task, execute_task.callback);
+            yield;
         }
 
-        public void add_task_and_wait (Task task) {
-            executed_mutex.lock ();
-            add_task (task);
-            while (last_executed_task != task)
-                executed_cond.wait (executed_mutex);
-            executed_mutex.unlock ();
+        public void enter_burst_mode (uint num_of_tasks) {
+            mode = ExecutingMode.BURST;
+            tasks_to_burst = num_of_tasks;
         }
-
+       
     }
 
 }

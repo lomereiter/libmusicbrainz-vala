@@ -1,10 +1,10 @@
 namespace Musicbrainz {
 
     public class Entity {
-        Gee.HashMap<string, string> _ext_attributes = new Gee.HashMap<string,string> ();
-        Gee.HashMap<string, string> _ext_elements = new Gee.HashMap<string, string> ();
-        Gee.HashMap<string, string> ext_attributes { get { return _ext_attributes; } }
-        Gee.HashMap<string, string> ext_elements { get { return _ext_elements; } }
+        Gee.Map<string, string> _ext_attributes = new Gee.HashMap<string,string> ();
+        Gee.Map<string, string> _ext_elements = new Gee.HashMap<string, string> ();
+        Gee.Map<string, string> ext_attributes { get { return _ext_attributes; } }
+        Gee.Map<string, string> ext_elements { get { return _ext_elements; } }
 
         protected virtual void parse_root_node (Xml.Node * node) {
         }

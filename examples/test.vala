@@ -7,7 +7,7 @@ void main () {
                      .search ()[0];
     stdout.printf (@"$(artist.name)\n$(artist.sort_name)\n$(artist.country)\n");
 
-    artist = Artist.by_id (artist.id, 
+    artist = Artist.lookup (artist.id, 
                 new ArtistIncludes () { releases = true,
                                         release_types = { ReleaseType.ALBUM, ReleaseType.EP },
                                         release_statuses = { ReleaseStatus.OFFICIAL }});

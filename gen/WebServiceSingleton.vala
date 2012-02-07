@@ -1,12 +1,13 @@
 namespace Musicbrainz {
 
-    public delegate void MetadataCallback (Metadata md);
-
     static const bool DEBUG = false;
 
     public class WebService {
+
+        static const uint QUERIES = 10;
+        static const uint TIME_INTERVAL = 10000000;
         
-        TaskExecuter task_executer = new TaskExecuter ();
+        TaskExecuter task_executer = new TaskExecuter (TIME_INTERVAL, QUERIES);
 
         static WebService _instance = null;
         internal static Soup.SessionSync session = new Soup.SessionSync ();
@@ -14,6 +15,12 @@ namespace Musicbrainz {
         string server;
         int port;
 
+        /**
+         * Is to be called before making any queries to MusicBrainz.
+         * @param user_agent string identifying your application to MusicBrainz webservice
+         * @param server address of MusicBrainz server
+         * @param port port to connect to
+         */
         public static void init (string user_agent, 
                                  string server="http://musicbrainz.org",
                                  int port=80) 
@@ -46,43 +53,53 @@ namespace Musicbrainz {
             return result;
         }
 
-        void query_async (string suffix, owned MetadataCallback cb) {
+        async Metadata query_async (string suffix) {
             var url = @"$server:$port/ws/2/$suffix";
             if (DEBUG) { stdout.printf ("%s\n", url); }
-            task_executer.add_task ( new QueryAsyncTask (url, (owned) cb) );
+            var task = new QueryAsyncTask (url);
+            yield task_executer.execute_task (task);
+            return task.metadata;
         }
 
         Metadata query (string suffix) {
-            var url = @"$server:$port/ws/2/$suffix";
-            if (DEBUG) { stdout.printf ("%s\n", url); }
-            var message = new Soup.Message ("GET", url);
-            task_executer.add_task_and_wait ( new QuerySyncTask (message));
-            return get_metadata_from_message (message);
+            Metadata result = null;
+            var loop = new MainLoop ();
+            query_async.begin (suffix, (obj, res) => {
+                result = query_async.end (res);
+                loop.quit ();
+            });
+            loop.run ();
+            return result;
         }
 
-
-        static string gen_lookup_query (string entity, string id, Includes? includes) {
-            var inc = "";
-            if (includes != null)
-                inc = includes.to_string ();
-            return @"$entity/$id?$inc";
+        static string gen_lookup_query (string entity, string id, string? includes_str) {
+            var inc = includes_str;
+            if (inc == null) return @"$entity/$id";
+            return @"$entity/$id?inc=$inc";
         }
 
-        public static Metadata lookup_query (string entity, string id, Includes? includes) {
-            return instance ().query (gen_lookup_query (entity, id, includes));
+        /** 
+         * Returns a Metadata instance containing information about the entity
+         * which MusicBrainz ID is specified.
+         * @param entity entity type
+         * @param id MusicBrainz ID of the entity
+         * @param includes_str controls the amount of information to get from MusicBrainz
+         */
+        public static Metadata lookup_query (string entity, string id, string? includes_str) {
+            return _instance.query (gen_lookup_query (entity, id, includes_str));
         }
 
-        public static void lookup_query_async (string entity, string id, Includes? includes,
-                                               owned MetadataCallback callback)
-        {
-            instance ().query_async (gen_lookup_query (entity, id, includes), 
-                                     (owned) callback);
+        public static async Metadata lookup_query_async (string entity, 
+                                                         string id, string? includes_str) {
+            var metadata = yield _instance.query_async (
+                                    gen_lookup_query (entity, id, includes_str));
+            return metadata;
         }
 
-        static string gen_search_query (string entity, Filter filter, 
+        static string gen_search_query (string entity, string lucene_query,
                                         int? limit, int? offset) 
         {
-            var str = @"$entity?query=$(filter.to_lucene ())";
+            var str = @"$entity?query=$lucene_query";
             if (limit != null)
                 str += @"&limit=$limit";
             if (offset != null)
@@ -90,18 +107,34 @@ namespace Musicbrainz {
             return str;
         }
 
-        public static Metadata search_query (string entity, Filter filter,
+        /**
+         * Returns a Metadata instance from which search results can be retrieved by
+         * accessing corresponding property.
+         * @param entity name of entity in MusicBrainz notation (e.g, "release-group")
+         * @param lucene_query query in Lucene syntax
+         * @param limit limits number of results returned
+         * @param offset the offset in the list of results
+         */
+        public static Metadata search_query (string entity, string lucene_query,
                                              int? limit, int? offset)
         {
-            return instance ().query (gen_search_query (entity, filter, limit, offset));
+            return _instance.query (gen_search_query (entity, lucene_query, limit, offset));
         }
 
-        public static void search_query_async (string entity, Filter filter,
-                                               int? limit, int? offset,
-                                               owned MetadataCallback callback)
+        public static async Metadata search_query_async (string entity, string lucene_query,
+                                                         int? limit, int? offset)
         {
-            instance ().query_async (gen_search_query (entity, filter, limit, offset),
-                                     (owned) callback);
+            return yield _instance.query_async (gen_search_query (entity, lucene_query, limit, offset));
+        }
+
+        /**
+         * Allows to burst a few queries without violating 
+         * MusicBrainz rate limiting rules. 
+         * @param queries_to_burst the number of queries to burst, <= 10
+         */
+        public static void burst (uint queries_to_burst=10) {
+            assert (queries_to_burst <= 10);
+            _instance.task_executer.enter_burst_mode (queries_to_burst);            
         }
     }
 

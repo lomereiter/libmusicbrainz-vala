@@ -143,7 +143,7 @@ class WsGenerator : XMLVisitor {
                 });
             }
         });
-        _ (@"var result = \"inc=\" + string.joinv (\"+\", includes);");
+        _ (@"var result = string.joinv (\"+\", includes);");
         if (need_to_add_suffix) {
             _ ( "result += suffix;");
         }
@@ -164,7 +164,7 @@ class WsGenerator : XMLVisitor {
     void visit_includes (Xml.Node * node) {
         foreach_child (node, (includes) => {
             var class_name = camel (includes -> name + "-includes");
-            _ (@"public class $class_name : Includes {");
+            _ (@"public class $class_name {");
             inc (); 
             foreach_child (includes, (field) => {
                 var name = field -> name;
@@ -243,19 +243,17 @@ class WsGenerator : XMLVisitor {
 
                 var list_name = plural (filter -> name);
     
-                _ (@"public delegate void SearchCallback ($(class_name)List $list_name);");
                 _ (@"public $(class_name)List search (int? limit=null, int? offset=null) {");
                 _ (@"    return WebService.search_query (\"$entity_name\",");
-                _ (@"                this, limit, offset).$list_name;");
+                _ (@"                to_lucene (), limit, offset).$list_name;");
                 _ ( "}");
 
-                _ ( "public void search_async (owned SearchCallback callback, ");
-                _ ( "                          int? limit=null, int? offset=null)");
-                _ ( "{");
-                _ (@"    WebService.search_query_async (\"$entity_name\", ");
-                _ ( "                        this, limit, offset, ");
-                _ (@"                        (md) => { callback (md.$list_name); });");
-                _ ( "}");                                   
+                _ (@"public async $(class_name)List search_async (int? limit=null, int? offset=null) {");
+                _ (@"    var metadata = yield WebService.search_query_async (\"$entity_name\",");
+                _ ( "                                              to_lucene (), limit, offset);");
+                _ (@"    return metadata.$list_name;");
+                _ ( "}");
+                            
             dec (); 
             _ ("}"); // end of class
         });

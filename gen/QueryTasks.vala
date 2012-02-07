@@ -2,28 +2,22 @@ namespace Musicbrainz {
 
     internal class QueryAsyncTask : Object, Task {
         string _url;
-        MetadataCallback _cb;
-        public QueryAsyncTask (string url, owned MetadataCallback cb) {
+        public Metadata metadata;
+        public QueryAsyncTask (string url) {
             _url = url;
-            _cb = (owned) cb;
         }
-        public void execute () {
+        public async void execute () {
             var msg = new Soup.Message ("GET", _url);
-            WebService.session.send_message (msg);
-            var metadata = WebService.get_metadata_from_message (msg);
+            
+            SourceFunc callback = execute.callback;
+            WebService.session.queue_message (msg, 
+            (session, msg) => {
 
-            assert (_cb != null);
-            _cb (metadata);
+                metadata = WebService.get_metadata_from_message (msg);
+                Idle.add ((owned) callback);
+            });
+            yield;
         }
     }
 
-    internal class QuerySyncTask : Object, Task {
-        Soup.Message msg;
-        public QuerySyncTask (Soup.Message msg) {
-            this.msg = msg;
-        }
-        public void execute () {
-            WebService.session.send_message (msg);
-        }
-    }
 }

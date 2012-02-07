@@ -3,39 +3,36 @@ using Musicbrainz;
 
 void main () {
     WebService.init ("musicbrainz-vala/0.0.2 (http://github.com/lomereiter)");
-    var loop = new MainLoop ();
 
-    new ReleaseFilter () { 
-        name = "Ride the Lightning", 
-        artist = "Metallica",
-        type = ReleaseType.ALBUM
-    }.search_async (
-        (releases) => {
-            Release.by_id_async (
-                releases[0].id, 
-                new ReleaseIncludes () { 
-                    relations = { RelationType.TO_ARTIST }
-                },
-                (album) => {
-                     foreach (var relation in album.relations) {
-                         if (relation.type() == "instrument") {
-                             Artist.by_id_async (
-                                 relation.artist.id, 
-                                 new ArtistIncludes () { 
-                                        relations = { RelationType.TO_ARTIST }
-                                 },
-                                 (artist) => {
-                                      stdout.printf (@"$(artist.name) is/was:\n");           
-                                      foreach (var rel in artist.relations) {
-                                          stdout.printf ("\t%s %s\n", 
-                                                         rel.type(),
-                                                         rel.artist.name);
-                                      }
-                                 });
-                         }
-                     }
-                });
+    var filter = new ArtistFilter () { name = "Sepultura" };
+
+    filter.search_async.begin (null, null,
+    (obj, res) => {
+        var artists = filter.search_async.end (res); 
+
+        Artist.lookup_async.begin (artists[0].id, 
+            new ArtistIncludes () { relations = { RelationType.TO_ARTIST } },
+        (obj, res) => {
+            var artist = Artist.lookup_async.end (res);
+    
+            WebService.burst ();
+
+            foreach (var relation in artist.relations) {
+                if (relation.type () == "member of band") {
+                    Artist.lookup_async.begin (relation.artist.id,
+                        new ArtistIncludes () { relations = { RelationType.TO_ARTIST } }, 
+                    (obj, res) => {
+                        var member = Artist.lookup_async.end (res); 
+                        stdout.printf (@"$(member.name) artist relations:\n");           
+                        foreach (var rel in member.relations)
+                            stdout.printf ("\t%s: %s\n", rel.type(), rel.artist.name);
+                    });
+                }
+            }
         });
+    });
 
-    loop.run (); // kill me by Ctrl-C
+    var loop = new MainLoop ();
+    Timeout.add (10 * 1000, () => { loop.quit (); return false; }); // 10 seconds should be enough
+    loop.run ();
 }
