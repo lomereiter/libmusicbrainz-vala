@@ -70,8 +70,6 @@ namespace Musicbrainz {
 
         SourceFunc? add_task_callback = null;
         
-        bool alive = true;
-
         async void loop () {
             // loop lifecycle:
             //      0) take next task from tasks
@@ -90,15 +88,13 @@ namespace Musicbrainz {
             //     >= time_interval / tasks_allowed. 
 
 
-            while (alive) {
+            while (true) {
 
                 if (tasks.is_empty) {
                     set_add_task_callback (loop.callback);
                     yield; 
                 }
                 
-                if (!alive) break;
-
                 // now the tasks queue is non empty
 
                 if (execute_times.is_empty) {
