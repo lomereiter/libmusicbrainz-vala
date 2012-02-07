@@ -1,6 +1,6 @@
 /*
   
-  EntitiesGenerator, generator of entities code for MusicBrainz
+  This file is part of libmusicbrainz-vala.
   Copyright (C) 2012 Artem Tarasov
   
   This program is free software; you can redistribute it and/or
@@ -59,6 +59,8 @@ string camelize (Xml.Node * node) {
 
 public class EntitiesGenerator : XMLVisitor {
 
+    // Special cases refer to switch statements in parsing elements/attributes.
+    // The example of that is generating parsing code for list elements.
     delegate void SpecialCaseFunc ();
     SpecialCaseFunc elements_special_case = null;
     SpecialCaseFunc attributes_special_case = null;
@@ -67,7 +69,6 @@ public class EntitiesGenerator : XMLVisitor {
     {
         base (infile, outfile);
         current_namespace = "Musicbrainz";
-        header_filename = null; // FIXME
     }
 
     protected override void visit (Xml.Node * node) throws FileError {
@@ -94,10 +95,9 @@ public class EntitiesGenerator : XMLVisitor {
     }
 
     void generate_from_node_constructor (Xml.Node * node) {
-        _ (@"public $current_classname.from_node (Xml.Node * node) {");//TODO:make me internal
+        _ (@"internal $current_classname.from_node (Xml.Node * node) {");
         _ ( "    if (node != null) parse (node);");
-        for (Xml.Node * child = node -> children; child != null; 
-             child = child -> next) {
+        for (Xml.Node * child = node -> children; child != null; child = child -> next) {
              if (child -> name == "root") {
                   _ ( "    parse_root_node (node);");
                   break;
@@ -148,17 +148,16 @@ public class EntitiesGenerator : XMLVisitor {
     void foreach_property (Xml.Node * node, PropertyFunc func) {
         foreach_child (node, (property) => {
             if (property -> name == "property") {
-                var mb_name = property -> get_prop ("name"); 
-                var name = property_name (property);
-
-                func (property -> get_prop ("type"), property_type (property),
-                      name, mb_name);
-
-                property = property -> next;
+                func (property -> get_prop ("type"), 
+                      property_type (property),
+                      property_name (property), 
+                      property -> get_prop ("name"));
             }
         });
     }
 
+    // Some cases in switch statement used for parsing XML must be skipped.
+    // Though, currently the only case is parsing artist-credit.
     SpecialCaseFunc cases_to_skip (Xml.Node * node) {
         return () => {
             foreach_child (node, (child) => {
@@ -331,6 +330,8 @@ public class EntitiesGenerator : XMLVisitor {
 				_ ( "public int size { get { return items.length; } }");
 				_ (@"public $elem_class get (int i) { return items[i]; }");
         generate_from_node_constructor (node); dec ();
+
+        // if node name is $elem_mb_name it is an element of the list
         elements_special_case = () => {
             _ (@"case \"$elem_mb_name\":");
             _ (@"    items += new $elem_class.from_node (node);");

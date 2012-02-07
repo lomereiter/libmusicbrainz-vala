@@ -1,3 +1,24 @@
+/*
+  
+  This file is part of libmusicbrainz-vala.
+  Copyright (C) 2012 Artem Tarasov
+  
+  This program is free software; you can redistribute it and/or
+  modify it under the terms of the GNU General Public License
+  as published by the Free Software Foundation; either version 2
+  of the License, or (at your option) any later version.
+  
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+    
+  You should have received a copy of the GNU General Public License
+  along with this program; if not, write to the Free Software
+  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA 
+  
+*/
+
 class WsGenerator : XMLVisitor {
 
     delegate string RewritingRule (string str);
@@ -114,7 +135,10 @@ class WsGenerator : XMLVisitor {
     }
 
     void postprocess (Xml.Node * includes) {
-
+        // Takes _implications_ into account.
+        // An implication is, for instance, release => release_types.
+        // That is, if some *Includes class has field 'release' it also 
+        // has field 'release_types' which is to be added.
         bool need_to_add_suffix = false;
         Gee.Set <string> props = new Gee.HashSet <string> (); 
         foreach_child (includes, (field) => { props.add (field -> name); });
@@ -133,6 +157,8 @@ class WsGenerator : XMLVisitor {
                         props.add (impl_name);
                         fields_to_add += implication;
                         var mb_name = MBify (impl_name);
+                        // Here we make an assumption that right part of the implication
+                        // is an array. Currently this is the case but might change in future.
                         _ (@"if ($impl_name.length != 0) {"); inc ();
                         _ ( "string[] mbified = {};");
                         _ (@"foreach (var item in $impl_name)");
@@ -157,6 +183,7 @@ class WsGenerator : XMLVisitor {
 
     void add_includes_field (string name, string? type) {
         var _type = type == null ? "bool" : camel (type);
+        // Currently, includes fields are either arrays or bools.
         var default_value = _type.has_suffix ("[]") ? "{}" : "false";
         _ (@"public $_type $name = $default_value;");
     }
@@ -185,6 +212,7 @@ class WsGenerator : XMLVisitor {
                         case "relation_type[]":
                             _ (@"foreach (var rel_type in $name) includes += rel_type.to_mb ();");
                             break;
+                        // release_types and release_statuses are processed in postprocess
                     }
                 });
                 postprocess (includes); // end of method is there
@@ -237,6 +265,9 @@ class WsGenerator : XMLVisitor {
                         _ (@"parameters += @\"$mb_name:$$(lucene_escape ($expression))\";");
                         dec ();
                     });
+                    //       currently filters are quite limited
+                    //       compared to queries in Lucene syntax
+                    //       and use only AND conjunction
                     _ (@"return string.joinv (\" AND \", parameters);");
                 dec ();
                 _ ( "}"); // end of method;
