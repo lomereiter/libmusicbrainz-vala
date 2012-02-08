@@ -22,18 +22,34 @@ namespace Musicbrainz {
 
     internal class QueryAsyncTask : Object, Task {
         string _url;
-        public Metadata metadata;
+        public Metadata metadata = null;
+        public Soup.KnownStatusCode status_code;
         public QueryAsyncTask (string url) {
             _url = url;
         }
+
+        void get_metadata_from_message (Soup.Message message) {
+            // WebService will use the status to throw exceptions
+            status_code = (Soup.KnownStatusCode) message.status_code;
+            
+            if (status_code != Soup.KnownStatusCode.OK) return; 
+
+            string xml = (string)(message.response_body.flatten ().data);
+
+            Xml.Parser.init ();
+            Xml.Doc * doc = Xml.Parser.parse_doc (xml);
+            metadata = new Metadata.from_node (doc -> get_root_element ());
+            Xml.Parser.cleanup ();
+            delete doc;
+        }
+
         public async void execute () {
             var msg = new Soup.Message ("GET", _url);
             
             SourceFunc callback = execute.callback;
             WebService.session.queue_message (msg, 
             (session, msg) => {
-
-                metadata = WebService.get_metadata_from_message (msg);
+                get_metadata_from_message (msg);
                 Idle.add ((owned) callback);
             });
             yield;

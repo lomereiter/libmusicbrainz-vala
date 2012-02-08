@@ -111,10 +111,11 @@ public class EntitiesGenerator : XMLVisitor {
         var c = current_classname;
         var mb_name = node -> get_prop ("name");
         var name = lowercase_str (mb_name);
-        _ (@"public static $c lookup (string id, $(c)Includes? includes=null) {");
+        _ (@"public static $c lookup (string id, $(c)Includes? includes=null) throws MBError {");
         _ (@"    return WebService.lookup_query (\"$mb_name\", id, includes.to_string ()).$name;"); 
         _ ( "}");
-        _ (@"public static async $c lookup_async (string id, $(c)Includes? includes=null) {");
+        _ (@"public static async $c lookup_async (string id, ");
+        _ (@"                                     $(c)Includes? includes=null) throws MBError {");
         _ (@"    var metadata = yield WebService.lookup_query_async (\"$mb_name\", id, ");
         _ ( "                                                        includes.to_string ());");
         _ (@"    return metadata.$name;"); 

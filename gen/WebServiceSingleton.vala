@@ -20,6 +20,13 @@
 
 namespace Musicbrainz {
 
+    public errordomain MBError {
+        BAD_REQUEST,
+        NOT_FOUND,
+        SERVICE_UNAVAILABLE,
+        UNKNOWN_REASON
+    }
+
     static const bool DEBUG = false;
 
     public class WebService {
@@ -59,36 +66,46 @@ namespace Musicbrainz {
             return _instance;
         }
 
-        internal static Metadata get_metadata_from_message (Soup.Message message) {
-            string xml = (string)(message.response_body.flatten ().data);
-
-            if (DEBUG) { stdout.printf ("%s\n", xml); }
-
-            Xml.Parser.init ();
-            Xml.Doc * doc = Xml.Parser.parse_doc (xml);
-            Metadata result = new Metadata.from_node (doc -> get_root_element ());
-            Xml.Parser.cleanup ();
-            delete doc;
-            
-            return result;
-        }
-
-        async Metadata query_async (string suffix) {
+        async Metadata query_async (string suffix) throws MBError {
             var url = @"$server:$port/ws/2/$suffix";
             if (DEBUG) { stdout.printf ("%s\n", url); }
             var task = new QueryAsyncTask (url);
             yield task_executer.execute_task (task);
-            return task.metadata;
+
+            var status = task.status_code;
+            if (Soup.KnownStatusCode.OK == status) {
+                return task.metadata;
+            }
+            var phrase = Soup.status_get_phrase (status);
+            switch (status) {
+                case Soup.KnownStatusCode.BAD_REQUEST:
+                    throw new MBError.BAD_REQUEST (phrase);
+                case Soup.KnownStatusCode.NOT_FOUND:
+                    throw new MBError.NOT_FOUND (phrase);
+                case Soup.KnownStatusCode.SERVICE_UNAVAILABLE:
+                    throw new MBError.SERVICE_UNAVAILABLE (phrase);
+                // TODO: maybe add some other status codes
+                default:
+                    throw new MBError.UNKNOWN_REASON (phrase);
+            }
         }
 
-        Metadata query (string suffix) {
+        Metadata query (string suffix) throws MBError {
             Metadata result = null;
             var loop = new MainLoop ();
+            MBError? error = null;
             query_async.begin (suffix, (obj, res) => {
-                result = query_async.end (res);
+                try {
+                    result = query_async.end (res);
+                } catch (MBError e) {
+                    error = (owned) e;
+                }
                 loop.quit ();
             });
             loop.run ();
+            if (error != null) {
+                throw error;
+            }
             return result;
         }
 
@@ -105,12 +122,15 @@ namespace Musicbrainz {
          * @param id MusicBrainz ID of the entity
          * @param includes_str controls the amount of information to get from MusicBrainz
          */
-        public static Metadata lookup_query (string entity, string id, string? includes_str) {
+        public static Metadata lookup_query (string entity, string id, 
+                                             string? includes_str) throws MBError 
+        {
             return _instance.query (gen_lookup_query (entity, id, includes_str));
         }
 
-        public static async Metadata lookup_query_async (string entity, 
-                                                         string id, string? includes_str) {
+        public static async Metadata lookup_query_async (string entity, string id, 
+                                                         string? includes_str) throws MBError 
+        {
             var metadata = yield _instance.query_async (
                                     gen_lookup_query (entity, id, includes_str));
             return metadata;
@@ -136,13 +156,13 @@ namespace Musicbrainz {
          * @param offset the offset in the list of results
          */
         public static Metadata search_query (string entity, string lucene_query,
-                                             int? limit, int? offset)
+                                             int? limit, int? offset) throws MBError
         {
             return _instance.query (gen_search_query (entity, lucene_query, limit, offset));
         }
 
         public static async Metadata search_query_async (string entity, string lucene_query,
-                                                         int? limit, int? offset)
+                                                         int? limit, int? offset) throws MBError
         {
             return yield _instance.query_async (gen_search_query (entity, lucene_query, limit, offset));
         }

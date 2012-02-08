@@ -274,12 +274,13 @@ class WsGenerator : XMLVisitor {
 
                 var list_name = plural (filter -> name);
     
-                _ (@"public $(class_name)List search (int? limit=null, int? offset=null) {");
+                _ (@"public $(class_name)List search (int? limit=null, int? offset=null) throws MBError {");
                 _ (@"    return WebService.search_query (\"$entity_name\",");
                 _ (@"                to_lucene (), limit, offset).$list_name;");
                 _ ( "}");
 
-                _ (@"public async $(class_name)List search_async (int? limit=null, int? offset=null) {");
+                _ (@"public async $(class_name)List search_async (int? limit=null,");
+                _ ( "                                             int? offset=null) throws MBError {");
                 _ (@"    var metadata = yield WebService.search_query_async (\"$entity_name\",");
                 _ ( "                                              to_lucene (), limit, offset);");
                 _ (@"    return metadata.$list_name;");
