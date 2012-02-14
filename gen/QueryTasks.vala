@@ -36,10 +36,8 @@ namespace Musicbrainz {
 
             string xml = (string)(message.response_body.flatten ().data);
 
-            Xml.Parser.init ();
             Xml.Doc * doc = Xml.Parser.parse_doc (xml);
             metadata = new Metadata.from_node (doc -> get_root_element ());
-            Xml.Parser.cleanup ();
             delete doc;
         }
 

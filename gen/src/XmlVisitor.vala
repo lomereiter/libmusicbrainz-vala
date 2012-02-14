@@ -26,7 +26,7 @@ public abstract class XMLVisitor {
     FileStream? output;
 
     protected int indent;
-    protected string current_namespace;
+    protected string? current_namespace;
     protected string current_classname;
 
 	string infile_dir;
@@ -38,7 +38,7 @@ public abstract class XMLVisitor {
 
         Xml.Parser.init ();
         doc = Xml.Parser.parse_file (infile);
-        indent = -SHIFT_WIDTH;
+        indent = 0;
 
         output = FileStream.open (outfile, "w+");
     }
@@ -86,8 +86,10 @@ public abstract class XMLVisitor {
             if (child -> type == Xml.ElementType.ELEMENT_NODE)
                 visit (child);
     }
-    
+   
+    // needed for Vala files only
     protected void visit_root_node (Xml.Node * node) throws FileError {
+        indent = 0;
         paste_file ("license_header.inc");
         _ (@"namespace $current_namespace {");
         visit_children (node);

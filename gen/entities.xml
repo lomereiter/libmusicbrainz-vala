@@ -267,6 +267,7 @@
             <property name="user-tag-list" type="object"/>
             <property name="rating" type="object"/>
             <property name="user-rating" type="object"/>
+            <verbatim file="recording.inc"/>
         </elements>
     </class>
     <class name="relation">

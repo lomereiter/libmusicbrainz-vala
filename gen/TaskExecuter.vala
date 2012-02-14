@@ -42,6 +42,8 @@ namespace Musicbrainz {
             }
             public async void execute () {
                 yield task.execute ();
+
+                // now we notify the caller that the task was executed
                 Idle.add ((owned) notify_caller);
             }
         }
@@ -68,16 +70,17 @@ namespace Musicbrainz {
 
         async void execute_next_task () {
             var task = tasks.poll ();
- 
+            
+            // update the deque
             if (execute_times_deque_is_full) 
                 execute_times.poll_head ();
            
             execute_times.offer_tail (new DateTime.now_local ());
+
             ++tasks_executed;
             yield task.execute (); 
 
         }
-
 
         public TaskExecuter (uint time_interval, uint tasks_allowed) {
             assert (tasks_allowed > 0);
@@ -91,14 +94,6 @@ namespace Musicbrainz {
         SourceFunc? add_task_callback = null;
         
         async void loop () {
-            // loop lifecycle:
-            //      0) take next task from tasks
-            //      1) wait until it's allowed to execute it
-            //      2) execute the task
-            //      3) notify waiting threads that the task was executed
-            //      4) update execute_times deque
-            //      goto step 0
-
             // the following invariants hold:
             //  1) in both BURST and NORMAL modes,
             //     the number of tasks executed per any time_interval
@@ -106,7 +101,6 @@ namespace Musicbrainz {
             //  2) in NORMAL mode, the time interval between
             //     consecutive task executions is 
             //     >= time_interval / tasks_allowed. 
-
 
             while (true) {
 
@@ -120,7 +114,8 @@ namespace Musicbrainz {
                 if (execute_times.is_empty) {
                     yield execute_next_task ();
                 } else {
-                    
+
+                    // wait until it's allowed to execute the task  
                     uint timeout = 0;
 
                     var now = new DateTime.now_local ();
@@ -186,7 +181,11 @@ namespace Musicbrainz {
 
         public void enter_burst_mode (uint num_of_tasks) {
             mode = ExecutingMode.BURST;
-            tasks_to_burst = num_of_tasks;
+            if (tasks_to_burst == null) {
+                tasks_to_burst = num_of_tasks;
+            } else {
+                tasks_to_burst += num_of_tasks;
+            }
         }
        
     }

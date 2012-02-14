@@ -60,6 +60,7 @@ namespace Musicbrainz {
                     _instance.port = port;
                 } 
             }
+            Xml.Parser.init ();
         }
 
         public static unowned WebService instance () {
@@ -140,6 +141,7 @@ namespace Musicbrainz {
                                         int? limit, int? offset) 
         {
             var str = @"$entity?query=$lucene_query";
+            assert (limit == null || limit <= 100);
             if (limit != null)
                 str += @"&limit=$limit";
             if (offset != null)
