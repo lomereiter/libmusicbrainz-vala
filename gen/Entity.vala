@@ -23,8 +23,8 @@ namespace Musicbrainz {
     public class Entity {
         Gee.Map<string, string> _ext_attributes = new Gee.HashMap<string,string> ();
         Gee.Map<string, string> _ext_elements = new Gee.HashMap<string, string> ();
-        Gee.Map<string, string> ext_attributes { get { return _ext_attributes; } }
-        Gee.Map<string, string> ext_elements { get { return _ext_elements; } }
+        public Gee.Map<string, string> ext_attributes { get { return _ext_attributes; } }
+        public Gee.Map<string, string> ext_elements { get { return _ext_elements; } }
 
         protected virtual void parse_root_node (Xml.Node * node) {
         }

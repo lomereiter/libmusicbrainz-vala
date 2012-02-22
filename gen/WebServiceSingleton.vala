@@ -27,7 +27,7 @@ namespace Musicbrainz {
         UNKNOWN_REASON
     }
 
-    static const bool DEBUG = false;
+    static const bool DEBUG = true;
 
     public class WebService {
 

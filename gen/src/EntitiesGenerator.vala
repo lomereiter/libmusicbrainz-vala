@@ -277,7 +277,8 @@ public class EntitiesGenerator : XMLVisitor {
     protected void visit_property (Xml.Node * node) {
         var name = property_name (node); 
         var type = property_type (node);
-        if (type.has_suffix ("List")) {
+        var is_list = type.has_suffix ("List");
+        if (is_list) {
             _ (@"$type _$name = new $type ();");
         } else {
             _ (@"$type? _$name = null;");
@@ -285,9 +286,9 @@ public class EntitiesGenerator : XMLVisitor {
         if (name == "type") {
             // Special case because Vala doesn't allow property 'type'
             // So we just make a function instead of property.
-            _ (@"public $type type () { return _type; }");
+            _ (@"public $type? type () { return _type; }");
         } else {
-            _ (@"public $type $name { get { return _$name; } }");
+            _ (@"public $type$(is_list ? "" : "?") $name { get { return _$name; } }");
         }
     }
 
